@@ -36,6 +36,7 @@ class MagicGrid {
     this.size = config.items;
     this.gutter = config.gutter;
     this.maxColumns = config.maxColumns || false;
+    this.targetColumnWidth = config.targetColumnWidth;
     this.useMin = config.useMin || false;
     this.useTransform = config.useTransform;
     this.animate = config.animate || false;
@@ -74,7 +75,14 @@ class MagicGrid {
    * @private
    */
   colWidth () {
-    return this.items[0].getBoundingClientRect().width + this.gutter;
+    if (this.targetColumnWidth) {
+      let cols = Math.min(
+        Math.round(this.width / (this.targetColumnWidth + this.gutter)),
+        this.items.length,
+      );
+      return Math.floor(this.width / cols);
+    }
+    return this.items[0].getBoundingClientRect().width;
   }
 
   /**
@@ -84,8 +92,8 @@ class MagicGrid {
    * @return {{cols: Array, wSpace: number}}
    * @private
    */
-  setup () {
-    let width = this.container.getBoundingClientRect().width;
+  setup() {
+    let width = this.width = this.container.getBoundingClientRect().width;
     let colWidth = this.colWidth();
     let numCols = Math.floor(width/colWidth) || 1;
     let cols = [];
@@ -98,7 +106,7 @@ class MagicGrid {
       cols[i] = {height: 0, index: i};
     }
 
-    let wSpace = width - numCols * colWidth + this.gutter;
+    let wSpace = width - numCols * colWidth;
 
     return {cols, wSpace};
   }
@@ -137,7 +145,7 @@ class MagicGrid {
       let col = this.nextCol(cols, i);
       let item = this.items[i];
       let topGutter = col.height ? this.gutter : 0;
-      let left = col.index * colWidth + wSpace + "px";
+      let left = Math.floor(col.index * (colWidth + this.gutter/2) + wSpace) + "px";
       let top = col.height + topGutter + "px";
 
       if(this.useTransform){
@@ -147,6 +155,10 @@ class MagicGrid {
         item.style.top = top;
         item.style.left = left;
       }
+      item.style.width = Math.floor(colWidth - (this.gutter/2)) + "px";
+
+      if (item.style.position !== "absolute")
+        item.style.position = "absolute";
 
       col.height += item.getBoundingClientRect().height + topGutter;
 
