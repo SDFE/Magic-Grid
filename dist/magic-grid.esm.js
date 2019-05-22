@@ -82,6 +82,7 @@ var MagicGrid = function MagicGrid (config) {
   this.size = config.items;
   this.gutter = config.gutter;
   this.maxColumns = config.maxColumns || false;
+  this.targetColumnWidth = config.targetColumnWidth;
   this.useMin = config.useMin || false;
   this.useTransform = config.useTransform;
   this.animate = config.animate || false;
@@ -120,7 +121,14 @@ MagicGrid.prototype.init = function init () {
  * @private
  */
 MagicGrid.prototype.colWidth = function colWidth () {
-  return this.items[0].getBoundingClientRect().width + this.gutter;
+  if (this.targetColumnWidth) {
+    var cols = Math.min(
+      Math.round(this.width / (this.targetColumnWidth + this.gutter)),
+      this.items.length
+    );
+    return Math.floor(this.width / cols);
+  }
+  return this.items[0].getBoundingClientRect().width;
 };
 
 /**
@@ -131,7 +139,7 @@ MagicGrid.prototype.colWidth = function colWidth () {
  * @private
  */
 MagicGrid.prototype.setup = function setup () {
-  var width = this.container.getBoundingClientRect().width;
+  var width = this.width = this.container.getBoundingClientRect().width;
   var colWidth = this.colWidth();
   var numCols = Math.floor(width/colWidth) || 1;
   var cols = [];
@@ -144,7 +152,7 @@ MagicGrid.prototype.setup = function setup () {
     cols[i] = {height: 0, index: i};
   }
 
-  var wSpace = width - numCols * colWidth + this.gutter;
+  var wSpace = width - numCols * colWidth;
 
   return {cols: cols, wSpace: wSpace};
 };
@@ -185,7 +193,7 @@ MagicGrid.prototype.positionItems = function positionItems () {
     var col = this.nextCol(cols, i);
     var item = this.items[i];
     var topGutter = col.height ? this.gutter : 0;
-    var left = col.index * colWidth + wSpace + "px";
+    var left = Math.floor(col.index * (colWidth + this.gutter/2) + wSpace) + "px";
     var top = col.height + topGutter + "px";
 
     if(this.useTransform){
@@ -195,6 +203,10 @@ MagicGrid.prototype.positionItems = function positionItems () {
       item.style.top = top;
       item.style.left = left;
     }
+    item.style.width = Math.floor(colWidth - (this.gutter/2)) + "px";
+
+    if (item.style.position !== "absolute")
+      { item.style.position = "absolute"; }
 
     col.height += item.getBoundingClientRect().height + topGutter;
 
